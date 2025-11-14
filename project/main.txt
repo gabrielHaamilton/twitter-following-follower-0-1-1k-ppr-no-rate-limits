@@ -1,0 +1,99 @@
+Twitter Following Follower |$0.1/1K | PPR| No Rate Limits/requirements.txt
+textrequests
+beautifulsoup4
+
+Twitter Following Follower |$0.1/1K | PPR| No Rate Limits/src/runner.py
+pyimport json
+import logging
+from pathlib import Path
+from extractors.twitter_parser import TwitterParser
+from outputs.exporters import JSONExporter
+
+logging.basicConfig(level=logging.INFO)
+
+def load_inputs(input_path: str):
+ p = Path(input_path)
+ if not p.exists():
+ raise FileNotFoundError(f"Input file not found: {input_path}")
+ with p.open("r", encoding="utf-8") as f:
+ return [line.strip() for line in f if line.strip()]
+
+def main():
+ input_file = Path(__file__).parent.parent / "data" / "inputs.sample.txt"
+ output_file = Path(__file__).parent.parent / "data" / "sample.json"
+
+ urls = load_inputs(str(input_file))
+ parser = TwitterParser()
+
+ results = []
+ for url in urls:
+ try:
+ data = parser.parse(url)
+ results.append(data)
+ except Exception as e:
+ logging.error(f"Failed to scrape {url}: {e}")
+
+ JSONExporter().export(results, str(output_file))
+ logging.info(f"Saved output to {output_file}")
+
+if __name__ == "__main__":
+ main()
+
+Twitter Following Follower |$0.1/1K | PPR| No Rate Limits/src/extractors/twitter_parser.py
+pyimport logging
+import requests
+from bs4 import BeautifulSoup
+from .utils_time import now_timestamp
+
+class TwitterParser:
+ def __init__(self):
+ self.session = requests.Session()
+
+ def parse(self, url: str) -> dict:
+ logging.info(f"Fetching {url}")
+ response = self.session.get(url, timeout=10)
+ response.raise_for_status()
+
+ soup = BeautifulSoup(response.text, "html.parser")
+ title = soup.title.string if soup.title else "Unknown"
+
+ return {
+ "url": url,
+ "title": title,
+ "scrapedAt": now_timestamp(),
+ }
+
+Twitter Following Follower |$0.1/1K | PPR| No Rate Limits/src/extractors/utils_time.py
+pyfrom datetime import datetime, timezone
+
+def now_timestamp() -> str:
+ return datetime.now(timezone.utc).isoformat()
+
+Twitter Following Follower |$0.1/1K | PPR| No Rate Limits/src/outputs/exporters.py
+pyimport json
+import logging
+
+class JSONExporter:
+ def export(self, data, path: str):
+ try:
+ with open(path, "w", encoding="utf-8") as f:
+ json.dump(data, f, indent=2)
+ except Exception as e:
+ logging.error(f"Failed to export JSON: {e}")
+ raise
+
+Twitter Following Follower |$0.1/1K | PPR| No Rate Limits/src/config/settings.example.json
+json{
+ "scrapeTimeout": 10,
+ "exportFormat": "json"
+}
+
+Twitter Following Follower |$0.1/1K | PPR| No Rate Limits/data/inputs.sample.txt
+texthttps://twitter.com/Twitter
+https://twitter.com/elonmusk
+
+Twitter Following Follower |$0.1/1K | PPR| No Rate Limits/data/sample.json
+json[]
+
+Twitter Following Follower |$0.1/1K | PPR| No Rate Limits/.keep
+textPlaceholder to retain directory tree integrity.
